@@ -1,0 +1,57 @@
+server:
+  host: 127.0.0.1
+  port: 8765
+# 原生 PostgreSQL 17；管理器使用 data/postgres-native，不注册全局 brew services。
+database:
+  host: 127.0.0.1
+  port: 5432
+  name: workmemory
+  user: workmemory
+memory:
+  backend: reme
+  reme_workspace: data/reme
+  neo4j_uri: bolt://127.0.0.1:7687
+  neo4j_http_port: 7474
+ollama:
+  url: http://127.0.0.1:11434
+  generation_model: qwen3:8b
+  embedding_model: qwen3-embedding:0.6b
+  embedding_dimensions: 1024
+  context_size: 8192
+  timeout_seconds: 240
+agent:
+  # 执行上限，不是费用额度；达到上限防止模型无限循环。可按需调整，重启后端生效。
+  max_model_calls: 1024
+  max_tool_calls: 16384
+  max_memory_searches: 4096
+  max_external_calls: 4096
+  tool_result_chars: 16000000
+  # 未填写生成模型 context_window 时的字符目标；填写后按该容量减输出预留估算。
+  # 旧工具轮次会明确省略，不会因此结束任务；这不是严格 token 计数。
+  context_chars: 64000
+  run_timeout_seconds: 86400
+ocr:
+  port: 8766
+  detection_model: PP-OCRv6_tiny_det
+  recognition_model: PP-OCRv6_tiny_rec
+  cpu_threads: 2
+  timeout_seconds: 45
+  max_image_bytes: 8388608
+collector:
+  ocr_mode: always # always: OCR 主采集；off: 手动 AX 模式；fallback: 旧兼容模式
+  capture_mode: timer # 默认每五秒单张采集；interaction 为可选操作触发
+  frame_rate: 4
+  merge_seconds: 0.6
+  max_group_seconds: 2
+  stable_seconds: 0.5
+  ocr_min_interval: 5
+  image_budget_mb: 64
+  max_pending_groups: 3
+  similarity_threshold: 0.95
+  interval_seconds: 5
+  spool_max_mb: 50
+  excluded_apps: [com.apple.keychainaccess, com.agilebits.onepassword7, com.1password.1password, com.apple.systempreferences]
+  excluded_title_patterns: ['(?i)password|密码|private browsing|无痕|incognito']
+retention_days: 30
+episode_minutes: 5
+timezone: Asia/Shanghai

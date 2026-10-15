@@ -1,0 +1,46 @@
+plugins: [workmemory_ollama]
+# Embedded ReMe; PostgreSQL jobs own indexing and retention. No autonomous agents.
+enable_logo: false
+log_to_console: false
+log_to_file: false
+service:
+  backend: http
+  web_enabled: false
+  mcp_enabled: false
+components:
+  tokenizer:
+    default: {backend: jieba}
+  embedding_store:
+    default: {backend: workmemory_ollama}
+  file_graph:
+    default: {backend: local}
+  file_chunker:
+    markdown:
+      backend: markdown
+      supported_extensions: [md]
+      include_frontmatter_in_metadata: true
+  keyword_index:
+    default: {backend: bm25, tokenizer: default}
+  file_store:
+    default:
+      backend: local
+      embedding_store: default
+      keyword_index: default
+      file_graph: default
+      tag_index: ''
+jobs:
+  write:
+    backend: base
+    steps: [{backend: write_step}]
+  delete:
+    backend: base
+    steps: [{backend: delete_step}]
+  index:
+    backend: base
+    steps: [{backend: update_index_step, persist: true}]
+  search:
+    backend: base
+    steps: [{backend: search_step, expand_links: false}]
+  status:
+    backend: base
+    steps: [{backend: status_step}]

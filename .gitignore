@@ -1,0 +1,45 @@
+# Private and generated state
+.venv/
+ocr/.venv/
+.cache/
+.run/
+logs/
+data/
+/models/
+config/app.local.yaml
+config/secrets.env
+config/runtime.env
+config/collector.json
+config/ocr.json
+config/generation.local.json
+config/.generation-*
+node_modules/
+frontend/dist/
+macos/.build/
+macos/WorkMemory.app/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.coverage
+.DS_Store
+*.egg-info/
+.env
+frontend/test-results/
+frontend/playwright-report/
+frontend/*.tsbuildinfo
+.tools/
+test-results/
+
+# Local shallow clones; reference inventory and research documents stay versioned
+/references/*/
+
+config/mcp.local.json
+config/.mcp-*
+
+config/database.local.json
+config/database.local.tmp
+
+# Local signing identity and temporary staged native bundles
+config/signing.local.json
+macos/.package-*/

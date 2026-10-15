@@ -1,0 +1,2 @@
+backends:
+  workmemory_ollama: workmemory.memory.reme_adapter:OllamaEmbeddingStore

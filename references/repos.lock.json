@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-09T17:48:08+08:00",
+  "timezone": "Asia/Shanghai",
+  "purpose": "拾忆参考项目静态源码分析；不作为应用依赖，不自动跟随上游更新。",
+  "clone_options": [
+    "--depth",
+    "1",
+    "--single-branch",
+    "--no-tags"
+  ],
+  "repositories": [
+    {
+      "name": "Screenpipe",
+      "directory": "screenpipe",
+      "origin": "https://github.com/screenpipe/screenpipe.git",
+      "branch": "main",
+      "commit": "2670901fe575db4715830fdaa9e39512356d32c0",
+      "commit_date": "2026-10-09T00:47:02-07:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "Screenpipe Commercial License",
+        "file": "LICENSE.md",
+        "sha256": "38b8fa09849f507b7be084b8f1591693388ddbb7646a93ae8e823f07d4acea4c"
+      },
+      "review_focus": "采集状态、精确缓存、电源策略、工具范围",
+      "checkout_note": "源码已检出且 Git 工作区干净。大型 LFS 文件保留为指针；未完成全部 LFS 对象下载，不是完整可运行资源包。"
+    },
+    {
+      "name": "MineContext",
+      "directory": "MineContext",
+      "origin": "https://github.com/volcengine/MineContext.git",
+      "branch": "main",
+      "commit": "171c7a9ea8091e326ddcf0f10718aa1b58c83c65",
+      "commit_date": "2026-05-07T21:23:05+08:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "Apache-2.0",
+        "file": "LICENSE",
+        "sha256": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+      },
+      "review_focus": "类型化事实、来源、分层报告与待办归并"
+    },
+    {
+      "name": "Dayflow",
+      "directory": "Dayflow",
+      "origin": "https://github.com/JerryZLiu/Dayflow.git",
+      "branch": "main",
+      "commit": "a45c7be14d1137fedaeb617db9c74fd2741256e2",
+      "commit_date": "2026-09-26T01:06:27+09:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "MIT",
+        "file": "LICENSE",
+        "sha256": "7ce0aaae03074cf81728e2dfb396c063fc759c23eba007d5b903f76b1db14c15"
+      },
+      "review_focus": "工作段、滚动时间线、日报与周报"
+    },
+    {
+      "name": "Pensieve",
+      "directory": "pensieve",
+      "origin": "https://github.com/arkohut/pensieve.git",
+      "branch": "master",
+      "commit": "3e55c66edc871c0960b5dcc2315b62da558d17d8",
+      "commit_date": "2026-07-19T19:15:14+08:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "Apache-2.0",
+        "file": "LICENSE",
+        "sha256": "48cf24e10446d69c7f67d9e44c56becd8e4ae1606a90dd883e5cf930f3229980"
+      },
+      "review_focus": "中文混合检索、筛选、前后文与后台调度"
+    },
+    {
+      "name": "OpenRecall",
+      "directory": "openrecall",
+      "origin": "https://github.com/openrecall/openrecall.git",
+      "branch": "main",
+      "commit": "62303e09bfd2491907e788ac5cbbdc21e73bd323",
+      "commit_date": "2025-09-24T10:19:48+02:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "GNU AGPL v3",
+        "file": "LICENSE",
+        "sha256": "87c29d6a4a9ab0eaddcdba494e3cdee4baeff7afce5c26ab13e16176c56ebee7"
+      },
+      "review_focus": "简单采集与检索流程的对照基线"
+    },
+    {
+      "name": "petex",
+      "directory": "petex",
+      "origin": "https://github.com/iebb/petex.git",
+      "branch": "master",
+      "commit": "a0a5d2ed7ba053bf0b61d982d6033358fb1c83e4",
+      "commit_date": "2026-09-30T04:07:49+09:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "Apache-2.0",
+        "file": "LICENSE",
+        "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "review_focus": "原生桌宠、皮肤协议、窗口与轻量渲染"
+    },
+    {
+      "name": "vscode-pets",
+      "directory": "vscode-pets",
+      "origin": "https://github.com/tonybaloney/vscode-pets.git",
+      "branch": "main",
+      "commit": "6554662a53ef093b7598598b77e51f95128a1f38",
+      "commit_date": "2026-10-07T09:35:48+11:00",
+      "shallow": true,
+      "reachable_commit_count": 1,
+      "working_tree_clean": true,
+      "root_license": {
+        "name": "MIT（代码）；素材许可单独核对",
+        "file": "LICENSE",
+        "sha256": "8be0fb13263891df85550e2cbba449afcc9283e356805e44caeb323f0ac37242"
+      },
+      "review_focus": "二维动画状态与鼠标交互"
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "postgres": {
+    "tag": "postgres:17",
+    "digest": "postgres@sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3",
+    "id": "sha256:2d2b8998d31037bf721cfdf764d76ba74171b4fab3431b7f72c27c56ddbdf9e3"
+  },
+  "neo4j": {
+    "tag": "neo4j:5.26-community",
+    "digest": "mirror.gcr.io/library/neo4j@sha256:c7d25c0eeebfe125718d58b72ed5d663c85d0479047733845eb2237c67ce8069",
+    "upstream_digest": "neo4j@sha256:c7d25c0eeebfe125718d58b72ed5d663c85d0479047733845eb2237c67ce8069",
+    "id": "sha256:c7d25c0eeebfe125718d58b72ed5d663c85d0479047733845eb2237c67ce8069"
+  }
+}

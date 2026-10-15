@@ -1,0 +1,51 @@
+import { test, expect } from "@playwright/test";
+const token = process.env.WORKMEMORY_TEST_TOKEN;
+test.skip(!token, "Requires the isolated test server");
+
+test("personal style preview, persistence, conflict and quiet control", async ({ page, context }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await context.addInitScript(value => sessionStorage.setItem("workmemory-token", value), token!);
+  await page.goto("/");
+  await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  const style = page.getByLabel("专属俏皮风格");
+  await expect(style).toBeVisible();
+  const history = page.getByRole("region", { name: "陪伴记录", exact: true });
+  await expect(history).toContainText("合成陪伴记录：我在桌边给你加油～");
+  await expect(history).toContainText("桌宠已确认展示");
+  await expect(history).toContainText("模型正在忙，本次机会已跳过");
+  await expect(history).toContainText("暂未收到桌宠的新鲜心跳");
+  await style.fill("合成测试：像一只调皮的小狐狸，简短、不说教。");
+  await page.getByRole("button", { name: "试说一句", exact: true }).click();
+  await expect(page.locator(".proactive-sample")).toContainText("小狐狸");
+  await expect(history).not.toContainText("小狐狸正在给你偷偷加油");
+  const config = await page.evaluate(async () => {
+    const response = await fetch("/api/client/state", { headers: { Authorization: "Bearer " + sessionStorage.getItem("workmemory-token") } });
+    return response.json();
+  });
+  expect(config.proactive.style).not.toContain("合成测试");
+  await page.getByRole("button", { name: "保存陪伴设置", exact: true }).click();
+  await expect(page.getByRole("button", { name: "保存陪伴设置", exact: true })).toBeDisabled();
+  await page.reload();
+  await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await expect(style).toContainText("合成测试");
+  await page.getByLabel("陪伴活跃程度").selectOption("balanced");
+  await page.evaluate(async () => {
+    const headers = { Authorization: "Bearer " + sessionStorage.getItem("workmemory-token"), "Content-Type": "application/json" };
+    const state = await (await fetch("/api/client/state", { headers })).json();
+    await fetch("/api/client/state", { method: "PATCH", headers, body: JSON.stringify({ expected_revision: state.revision, proactive: { ...state.proactive, style: "另一端的新风格" } }) });
+    window.dispatchEvent(new Event("client-change"));
+  });
+  await expect(page.getByRole("alert").filter({ hasText: "陪伴设置已在另一端更新" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存陪伴设置", exact: true })).toBeDisabled();
+  await page.getByRole("button", { name: "读取新设置", exact: true }).click();
+  await expect(style).toHaveValue("另一端的新风格");
+  await page.getByRole("button", { name: "安静一小时", exact: true }).click();
+  await expect(page.locator(".proactive-sample")).toContainText("一小时");
+  await expect(history).toContainText("正在临时安静");
+  await page.getByRole("button", { name: "刷新记录", exact: true }).click();
+  await expect(history).toContainText("合成陪伴记录：我在桌边给你加油～");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

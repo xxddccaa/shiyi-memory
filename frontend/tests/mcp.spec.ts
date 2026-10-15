@@ -1,0 +1,96 @@
+import { test, expect } from "@playwright/test";
+const token = process.env.WORKMEMORY_TEST_TOKEN;
+test.skip(!token, "Requires isolated business database and temporary MCP settings.");
+
+test("MCP settings persist enable, city and disabled custom server; credentials stay hidden", async ({page}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+  await page.addInitScript((t) => sessionStorage.setItem("workmemory-token", t), token!);
+  await page.goto("/");
+  await page.getByRole("button", {name: "偏好与状态", exact: true}).click();
+  const card = page.locator(".mcp-settings");
+  await expect(card.getByText("联网搜索 · Exa", {exact: true})).toBeVisible();
+  const weather = card.locator("article").filter({hasText: "天气 · Open-Meteo"});
+  await weather.getByRole("button", {name: "启用", exact: true}).click();
+  await expect(weather).toContainText("已启用");
+  await card.getByLabel("常用城市", {exact: true}).fill("浙江省杭州市");
+  await card.getByRole("button", {name: "保存城市"}).click();
+  await expect(card.getByRole("status")).toContainText("已保存常用城市");
+  await card.getByRole("button", {name: "添加只读 MCP 服务"}).click();
+  let dialog = page.getByRole("dialog", {name: "添加只读服务"});
+  await dialog.getByLabel("服务标识", {exact: true}).fill("synthetic-reader");
+  await dialog.getByLabel("服务名称", {exact: true}).fill("合成只读工具");
+  await dialog.getByLabel("MCP 服务地址", {exact: true}).fill("https://synthetic.invalid/mcp");
+  await dialog.getByLabel("MCP 访问凭据", {exact: true}).fill("browser-synthetic-secret");
+  await dialog.getByRole("button", {name: "保存设置", exact: true}).click();
+  await expect(dialog).not.toBeVisible();
+  await expect(card.getByText("合成只读工具", {exact: true})).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", {name: "偏好与状态", exact: true}).click();
+  await expect(card.getByLabel("常用城市", {exact: true})).toHaveValue("浙江省杭州市");
+  await card.locator("article").filter({hasText: "合成只读工具"}).getByRole("button", {name: "设置", exact: true}).click();
+  dialog = page.getByRole("dialog", {name: "合成只读工具"});
+  await expect(dialog.getByLabel("MCP 访问凭据", {exact: true})).toHaveValue("");
+  expect(await page.evaluate(() => JSON.stringify([localStorage, sessionStorage]))).not.toContain("browser-synthetic-secret");
+  await page.setViewportSize({width: 390, height: 844});
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await dialog.getByRole("button", {name: "移除服务", exact: true}).click();
+  await expect(card.getByText("合成只读工具", {exact: true})).toHaveCount(0);
+  await weather.getByRole("button", {name: "停用", exact: true}).click();
+  expect(errors).toEqual([]);
+});
+
+for (const surface of ["web", "pet"]) test(`${surface}: select a precise todo and confirm deletion through Pi`, async ({page, request}) => {
+  const headers = {Authorization: "Bearer " + token};
+  const cid = (await (await request.post("/api/conversations", {headers, data: {title: `${surface}删除验收`}})).json()).id;
+  const created = await (await request.post(`/api/conversations/${cid}/operations`, {headers, data: {action: "todo.create", due_at: new Date(Date.now()+86400000).toISOString(), text: `${surface}唯一删除验收待办`}})).json();
+  await request.post(`/api/operations/${created.id}/decision`, {headers, data: {action: "confirm", expected_revision: created.revision}});
+  await page.addInitScript(({token, cid}) => { sessionStorage.setItem("workmemory-token", token!); sessionStorage.setItem("workmemory-conversation", cid); }, {token, cid});
+  if (surface === "pet") await page.setViewportSize({width: 420, height: 650});
+  await page.goto(surface === "pet" ? "/?surface=pet" : "/");
+  if (surface === "web") await page.getByRole("button", {name: "问问记忆", exact: true}).click();
+  await page.getByRole("button", {name: "选择对象", exact: true}).click();
+  const picker = page.getByRole("dialog", {name: "选择要处理的对象"});
+  await picker.getByLabel("搜索工作对象").fill(`${surface}唯一删除验收待办`);
+  await picker.locator(".workspace-object").click();
+  await expect(page.locator(".chat-selection")).toContainText(`${surface}唯一删除验收待办`);
+  await page.getByLabel("提问", {exact: true}).fill("合成删除选中待办");
+  await page.getByRole("button", {name: "发送问题", exact: true}).click();
+  const op = page.locator(".operation-card").filter({has: page.getByRole("heading", {name: "删除待办", exact: true})});
+  await expect(op).toBeVisible({timeout: 20000});
+  await expect(op).toContainText(`${surface}唯一删除验收待办`);
+  await expect(op).toContainText("不可撤销");
+  await op.getByRole("button", {name: "确认执行", exact: true}).click();
+  await expect(page.locator(".operation-list")).toContainText("已执行：删除待办");
+  const remaining = (await (await request.get(`/api/workspace/objects?kind=todo&q=${encodeURIComponent(`${surface}唯一删除验收待办`)}`, {headers})).json()).items;
+  expect(remaining).toHaveLength(0);
+  await page.getByRole("button", {name: "我能做什么", exact: true}).click();
+  await expect(page.getByRole("dialog", {name: "我能做什么"})).toContainText("删除待办");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+for (const surface of ["web", "pet"]) test(`${surface}: review a fixed bulk list and confirm once`, async ({page, request}) => {
+  const headers = {Authorization: "Bearer " + token};
+  const cid = (await (await request.post("/api/conversations", {headers, data: {title: `${surface}批量删除验收`}})).json()).id;
+  const ids: string[] = [];
+  for (let i = 0; i < 3; i++) {
+    const op = await (await request.post(`/api/conversations/${cid}/operations`, {headers, data: {action: "todo.create", due_at: new Date(Date.now()+86400000).toISOString(), text: `${surface}批量任务${i}`}})).json();
+    const result = await (await request.post(`/api/operations/${op.id}/decision`, {headers, data: {action: "confirm", expected_revision: op.revision}})).json();
+    ids.push(result.result.object_id);
+  }
+  const bulk = await (await request.post(`/api/conversations/${cid}/operations`, {headers, data: {action: "todo.delete_many", target_ids: ids}})).json();
+  expect(bulk.preview.count).toBe(3);
+  await page.addInitScript(({token, cid}) => {sessionStorage.setItem("workmemory-token", token!); sessionStorage.setItem("workmemory-conversation", cid);}, {token, cid});
+  if (surface === "pet") await page.setViewportSize({width: 420, height: 650});
+  await page.goto(surface === "pet" ? "/?surface=pet" : "/");
+  if (surface === "web") await page.getByRole("button", {name: "问问记忆", exact: true}).click();
+  const card = page.locator(".operation-card").filter({has: page.getByRole("heading", {name: "批量删除 3 条待办", exact: true})});
+  await expect(card).toBeVisible();
+  await expect(card.locator(".operation-target")).toHaveCount(3);
+  await expect(card).toContainText(`${surface}批量任务2`);
+  await expect(card).toContainText("之后新增的待办不受影响");
+  await card.getByRole("button", {name: "确认删除 3 条待办", exact: true}).click();
+  await expect(page.locator(".operation-list")).toContainText("已执行：批量删除 3 条待办");
+  for (const id of ids) expect((await request.get(`/api/workspace/objects/todo/${id}`, {headers})).status()).toBe(404);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
