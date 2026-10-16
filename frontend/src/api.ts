@@ -49,6 +49,18 @@ export interface Project {
   episodes: number;
   last_active: string;
 }
+export const DAILY_WORK_LABEL = "日常工作";
+export const DAILY_WORK_SCOPE = "__daily_work__";
+export interface DailyWorkGroup {
+  name: string;
+  episodes: number;
+  last_active: string | null;
+}
+export function workScopeQuery(value: string) {
+  return value === DAILY_WORK_SCOPE
+    ? "unassigned=true"
+    : value ? "project_id=" + encodeURIComponent(value) : "";
+}
 export interface Todo {
   id: string;
   revision: number;

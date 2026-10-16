@@ -27,6 +27,7 @@ from workmemory.ingestion.dedup import restore
 from workmemory.ingestion.service import Batch, ingest
 from workmemory.jobs.queue import now
 from workmemory.memory.sync import schedule_sync, selected_backend, switch_backend
+from workmemory.workspace.grouping import DAILY_WORK_LABEL
 
 router = APIRouter(prefix="/api")
 
@@ -59,11 +60,16 @@ async def timeline(
     offset: int = Query(0, ge=0),
     project_id: uuid.UUID | None = None,
     day: date | None = None,
+    unassigned: bool = False,
 ):
     rt = runtime(request)
+    if project_id and unassigned:
+        raise HTTPException(422, "具体项目与日常工作不能同时筛选")
     conditions = [Episode.deleted_at.is_(None)]
     if project_id:
         conditions.append(Episode.project_id == project_id)
+    if unassigned:
+        conditions.append(Episode.project_id.is_(None))
     if day:
         start = datetime.combine(day, time.min, ZoneInfo(rt.settings.timezone))
         conditions.extend(
@@ -212,6 +218,17 @@ async def retry_episode(episode_id: uuid.UUID, request: Request):
     return {"scheduled": True}
 
 
+@router.get("/work-groups/daily")
+async def daily_work(request: Request):
+    async with runtime(request).sessions() as session:
+        count, latest = (await session.execute(
+            select(func.count(Episode.id), func.max(Episode.started_at)).where(
+                Episode.deleted_at.is_(None), Episode.project_id.is_(None)
+            )
+        )).one()
+    return {"name": DAILY_WORK_LABEL, "episodes": count, "last_active": latest}
+
+
 @router.get("/projects")
 async def projects(request: Request):
     async with runtime(request).sessions() as session:
@@ -275,9 +292,10 @@ async def chat(body: Question, request: Request):
 @router.get("/memory/search")
 async def memory_search(request: Request, q: str = Query(min_length=1, max_length=2000),
     project_id: uuid.UUID | None = None, app: str | None = None,
-    from_at: AwareDatetime | None = Query(None, alias="from"), to_at: AwareDatetime | None = Query(None, alias="to")):
+    from_at: AwareDatetime | None = Query(None, alias="from"), to_at: AwareDatetime | None = Query(None, alias="to"),
+    unassigned: bool = False):
     sources, warning = await retrieve(runtime(request), q, project_id=project_id, app=app,
-                                      from_at=from_at, to_at=to_at)
+                                      from_at=from_at, to_at=to_at, unassigned=unassigned)
     return {"items": sources, "warning": warning}
 
 

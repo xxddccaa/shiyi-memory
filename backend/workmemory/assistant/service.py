@@ -6,6 +6,7 @@ from sqlalchemy import select
 from workmemory.config import ROOT
 from workmemory.db.models import Episode, Project
 from workmemory.evidence.policy import metadata, valid_excerpt_sources
+from workmemory.workspace.grouping import DAILY_WORK_LABEL
 
 
 class Answer(BaseModel):
@@ -24,7 +25,7 @@ def episode_view(episode, project=None):
         "revision": episode.revision,
         "corrected": episode.corrected,
         "project_id": str(episode.project_id) if episode.project_id else None,
-        "project": project.name if project else episode.project_hint,
+        "project": project.name if project else episode.project_hint or (DAILY_WORK_LABEL if not episode.project_id else None),
     }
 
 

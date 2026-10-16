@@ -40,11 +40,32 @@ struct PetWebCheck {
                         return {width: innerWidth, height: innerHeight,
                         noOverflow: document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight,
                         composerVisible: box.bottom <= innerHeight && box.width >= innerWidth-40,
+                        transcriptHeight: transcript.clientHeight,
                         transcriptContained: transcript.scrollWidth <= transcript.clientWidth}; })()
                         """) as! [String: Any]
                     guard value["noOverflow"] as? Bool == true, value["composerVisible"] as? Bool == true,
+                          (value["transcriptHeight"] as? Int ?? 0) >= 200,
                           value["transcriptContained"] as? Bool == true else { throw CheckError.failed }
                     measurements.append(value)
+                    stage = "tools panel at \(width)"
+                    _ = try await web.evaluateJavaScript("document.querySelector('.chat-tools button:nth-child(2)').click(); true")
+                    try await until(web, "Boolean(document.querySelector('dialog[open]'))")
+                    _ = try await web.evaluateJavaScript("document.querySelector('#tool-tab-coding').click(); true")
+                    try await until(web, "document.querySelector('#tool-tab-coding').getAttribute('aria-selected') === 'true'")
+                    _ = try await web.evaluateJavaScript("""
+                        (() => { const input = document.querySelector('[aria-label=添加本机目录]');
+                        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, '/synthetic/native-draft');
+                        input.dispatchEvent(new Event('input', {bubbles: true})); return true; })()
+                        """)
+                    _ = try await web.evaluateJavaScript("document.querySelector('[aria-label=关闭面板]').click(); true")
+                    try await until(web, "!document.querySelector('dialog[open]')")
+                    _ = try await web.evaluateJavaScript("document.querySelector('.chat-tools button:nth-child(2)').click(); true")
+                    try await until(web, "document.querySelector('[aria-label=添加本机目录]')?.value === '/synthetic/native-draft'")
+                    let toolImage = try await web.takeSnapshot(configuration: nil)
+                    let toolBitmap = NSBitmapImageRep(data: toolImage.tiffRepresentation!)!
+                    try toolBitmap.representation(using: .png, properties: [:])!.write(to: directory.appendingPathComponent("pet-tools-native-\(width).png"))
+                    _ = try await web.evaluateJavaScript("document.querySelector('[aria-label=关闭面板]').click(); true")
+                    try await until(web, "!document.querySelector('dialog[open]')")
                     let image = try await web.takeSnapshot(configuration: nil)
                     let bitmap = NSBitmapImageRep(data: image.tiffRepresentation!)!
                     try bitmap.representation(using: .png, properties: [:])!.write(to: directory.appendingPathComponent("pet-native-\(width).png"))

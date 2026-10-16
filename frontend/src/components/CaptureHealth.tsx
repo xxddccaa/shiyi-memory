@@ -24,21 +24,21 @@ export default function CaptureHealth({ status }: { status: Status | null }) {
     void post("/capture/actions", { action }).catch((e) => setError(e.message));
   if (!status?.capture_health) return null;
   const health = status.capture_health;
-  const permission = health.state === "permission_required";
+  const attention = ["permission_required", "error", "offline", "stalled"].includes(health.state);
   return (
     <section
-      className={`capture-health ${permission || health.state === "error" ? "needs-attention" : ""}`}
+      className={`capture-health ${attention ? "needs-attention" : ""}`}
       aria-label="采集状态"
     >
-      <div className="agent-toolbar">
+      <div className="capture-status-row">
         <strong>{health.label}</strong>
         {
-          <button className="secondary" onClick={() => setHelp(!help)}>
-            查看诊断与修复
+          <button className="text-button" aria-expanded={help} onClick={() => setHelp(!help)}>
+            {help ? "收起诊断" : "查看诊断与修复"}
           </button>
         }
       </div>
-      <p>{health.detail}</p>
+      {(attention || help) && <p>{health.detail}</p>}
       {error && <p role="alert">{error}</p>}
       {help && (
         <div className="permission-help">
@@ -79,7 +79,7 @@ export default function CaptureHealth({ status }: { status: Status | null }) {
           </p>
         </div>
       )}
-      <details>
+      {help && <details>
         <summary>查看采集链路时间</summary>
         <dl>
           <dt>最近截图</dt>
@@ -102,7 +102,7 @@ export default function CaptureHealth({ status }: { status: Status | null }) {
         <p className="muted small">
           收到上传可能来自旧队列；重复页面被过滤时，入库时间不会前进。
         </p>
-      </details>
+      </details>}
     </section>
   );
 }

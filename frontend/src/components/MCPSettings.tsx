@@ -77,7 +77,7 @@ export default function MCPSettings() {
       const value = await api<Settings>("/mcp/city", {method: "PUT", body: JSON.stringify({expected_revision: settings!.revision, city: city.trim() || null})});
       setSettings(value); setNotice(city.trim() ? "已保存常用城市，未读取设备定位。" : "已清除常用城市。");
     }); }}>
-      <label>常用城市<input aria-label="常用城市" placeholder="例如：浙江省杭州市" maxLength={100} value={city} onChange={(e) => setCity(e.target.value)} /></label>
+      <label>常用城市<input disabled={busy || !settings} aria-label="常用城市" placeholder="例如：浙江省杭州市" maxLength={100} value={city} onChange={(e) => setCity(e.target.value)} /></label>
       <button disabled={busy || !settings}>保存城市</button>
     </form>
     {!editing && error && <p role="alert">{error}<button className="text-button" onClick={() => void action(async () => { await reload(); })}>刷新设置</button></p>}

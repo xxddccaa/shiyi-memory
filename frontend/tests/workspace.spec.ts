@@ -58,14 +58,16 @@ test("manual record, source correction, pages, deletion and mobile layout", asyn
     await expect(
       page.getByRole("heading", { name: "让项目接着往前走。" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "每日回顾", exact: true }).click();
+    await page.locator(".sidebar").getByRole("button", { name: "每日回顾", exact: true }).click();
     await expect(
       page.getByRole("heading", { name: "回看今天，轻装向前。" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "问问记忆", exact: true }).click();
     await expect(page.getByLabel("提问")).toBeVisible();
     await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+    await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "采集与记忆" }).click();
     await expect(page.getByRole("heading", { name: "记忆后端" })).toBeVisible();
+    await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "服务状态" }).click();
     await expect(page.getByText("自动采集", { exact: true })).toBeVisible();
     await expect(page.getByText("PaddleOCR", { exact: true })).toBeVisible();
     await expect(page.getByText("最近一次 OCR", { exact: true })).toBeVisible();

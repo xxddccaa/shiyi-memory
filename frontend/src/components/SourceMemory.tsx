@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, post } from "../api";
+import { api, post, DAILY_WORK_LABEL } from "../api";
 import type { Episode } from "../api";
 
 type Proposal = { id: string; revision: number; status: string };
@@ -115,7 +115,7 @@ export default function SourceMemory({
                 setRequestId(crypto.randomUUID());
               }}
             >
-              <option value="">未归属项目</option>
+              <option value="">{DAILY_WORK_LABEL}（默认分类）</option>
               {projects.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}

@@ -5,6 +5,7 @@ from datetime import datetime, time, timedelta
 from zoneinfo import ZoneInfo
 
 import jieba
+from fastapi import HTTPException
 from sqlalchemy import delete, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -34,6 +35,7 @@ from workmemory.inference.ollama import priority_context
 from workmemory.ingestion.dedup import restore
 from workmemory.jobs.queue import now
 from workmemory.memory.sync import selected_backend
+from workmemory.workspace.grouping import DAILY_WORK_LABEL
 
 jieba.setLogLevel(40)
 STOP = {
@@ -364,14 +366,17 @@ async def search(
     from_at=None,
     to_at=None,
     include_raw=True,
+    unassigned=False,
 ):
+    if project_id and unassigned:
+        raise HTTPException(422, "具体项目与日常工作不能同时筛选")
     await backfill(runtime)
     auto_from, auto_to = temporal_scope(query, runtime.settings.timezone)
     from_at, to_at = from_at or auto_from, to_at or auto_to
     warning, hits = None, []
     async with runtime.sessions() as session:
         backend = await selected_backend(session)
-        if project_id is None:
+        if project_id is None and not unassigned:
             projects = (
                 await session.scalars(select(Project).where(Project.state.notin_(["merged", "deleted"])))
             ).all()
@@ -397,6 +402,8 @@ async def search(
     scope = [Episode.deleted_at.is_(None)]
     if project_id:
         scope.append(Episode.project_id == project_id)
+    if unassigned:
+        scope.append(Episode.project_id.is_(None))
     if from_at:
         scope.append(Episode.started_at >= from_at)
     if to_at:
@@ -453,7 +460,7 @@ async def search(
                 ranks[sid] = ranks.get(sid, 0) + 1 / (60 + rank)
                 details.setdefault(sid, {})["semantic_rank"] = rank
         # Exact project scope remains useful when the query only names a project.
-        if project_id and not ranks:
+        if (project_id or unassigned and query.strip() == DAILY_WORK_LABEL) and not ranks:
             ids = (
                 await session.scalars(
                     select(Episode.id)
@@ -472,6 +479,7 @@ async def search(
                         .where(
                             MemoryCandidate.status == "confirmed",
                             (MemoryCandidate.origin["project_id"].astext == str(project_id)) if project_id else True,
+                            MemoryCandidate.origin["project_id"].astext.is_(None) if unassigned else True,
                             or_(
                                 *(
                                     MemoryCandidate.text.icontains(w, autoescape=True)
@@ -505,6 +513,7 @@ async def search(
             "next_cursor": offset + limit if len(items) > offset + limit else None,
             "scope": {
                 "project_id": str(project_id) if project_id else None,
+                "unassigned": unassigned,
                 "from": from_at.isoformat() if from_at else None,
                 "to": to_at.isoformat() if to_at else None,
                 "app": app,

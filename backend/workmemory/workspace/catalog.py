@@ -22,6 +22,7 @@ TOOLS = [
             {
                 "query": STRING,
                 "project_id": {"type": "string", "format": "uuid"},
+                "unassigned": {"type": "boolean", "description": "仅检索没有明确项目的日常工作，不能与project_id同时使用。"},
                 "from": {"type": "string"},
                 "to": {"type": "string"},
                 "app": {"type": "string"},

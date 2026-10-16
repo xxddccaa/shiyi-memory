@@ -50,6 +50,7 @@ async def execute(runtime, run_id, name, args):
             args["query"],
             limit=5,
             project_id=uuid.UUID(args["project_id"]) if args.get("project_id") else None,
+            unassigned=args.get("unassigned", False),
             app=args.get("app"),
             from_at=when("from"),
             to_at=when("to"),

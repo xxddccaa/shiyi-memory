@@ -32,10 +32,13 @@ test("embedded agent shares persistent conversations, sources and confirmed memo
     .getByLabel("提问", { exact: true })
     .fill("我的工作偏好是先写验收测试。");
   await page.getByRole("button", { name: "发送问题", exact: true }).click();
+  await page.getByRole("button", { name: "聊天菜单" }).click();
+  await page.getByRole("button", { name: "记忆管理" }).click();
   await page.getByRole("button", { name: "确认记住", exact: true }).click();
   await expect(
     page.getByText("已确认 · 长期保留", { exact: true }),
   ).toBeVisible();
+  await page.keyboard.press("Escape");
   // Removing a source invalidates all dependent persisted turns, not just their citation links.
   const list = await request.get("/api/timeline", {
     headers: { Authorization: "Bearer " + token },
@@ -61,6 +64,7 @@ test("embedded agent shares persistent conversations, sources and confirmed memo
     ),
   ).toBe(true);
   page.on("dialog", (dialog) => dialog.accept());
+  await page.getByRole("button", { name: "聊天菜单" }).click();
   await page.getByRole("button", { name: "删除会话", exact: true }).click();
   await expect(
     page.getByText("已确认 · 长期保留", { exact: true }),

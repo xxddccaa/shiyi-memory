@@ -382,6 +382,7 @@ async def evidence_search(
     limit: int = Query(10, ge=1, le=30),
     cursor: int = Query(0, ge=0, le=300),
     include_raw: bool = True,
+    unassigned: bool = False,
 ):
     if from_at and to_at and from_at >= to_at:
         raise HTTPException(422, "开始时间必须早于结束时间")
@@ -395,6 +396,7 @@ async def evidence_search(
         limit=limit,
         offset=cursor,
         include_raw=include_raw,
+        unassigned=unassigned,
     )
 
 

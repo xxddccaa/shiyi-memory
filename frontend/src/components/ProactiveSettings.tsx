@@ -187,12 +187,17 @@ export default function ProactiveSettings({
       </p>
       <div className="proactive-actions">
         <button
+          className="primary"
           disabled={disabled || !dirty || conflict}
           onClick={() => void commit()}
         >
           保存陪伴设置
         </button>
-        <button disabled={trying} onClick={() => void preview()}>
+        <button
+          className="secondary"
+          disabled={trying}
+          onClick={() => void preview()}
+        >
           {trying ? "正在想一句…" : "试说一句"}
         </button>
         <button

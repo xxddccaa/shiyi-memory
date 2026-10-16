@@ -8,6 +8,7 @@ test("MCP settings persist enable, city and disabled custom server; credentials 
   await page.addInitScript((t) => sessionStorage.setItem("workmemory-token", t), token!);
   await page.goto("/");
   await page.getByRole("button", {name: "偏好与状态", exact: true}).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "联网与工具" }).click();
   const card = page.locator(".mcp-settings");
   await expect(card.getByText("联网搜索 · Exa", {exact: true})).toBeVisible();
   const weather = card.locator("article").filter({hasText: "天气 · Open-Meteo"});
@@ -27,6 +28,7 @@ test("MCP settings persist enable, city and disabled custom server; credentials 
   await expect(card.getByText("合成只读工具", {exact: true})).toBeVisible();
   await page.reload();
   await page.getByRole("button", {name: "偏好与状态", exact: true}).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "联网与工具" }).click();
   await expect(card.getByLabel("常用城市", {exact: true})).toHaveValue("浙江省杭州市");
   await card.locator("article").filter({hasText: "合成只读工具"}).getByRole("button", {name: "设置", exact: true}).click();
   dialog = page.getByRole("dialog", {name: "合成只读工具"});
@@ -64,8 +66,8 @@ for (const surface of ["web", "pet"]) test(`${surface}: select a precise todo an
   await expect(page.locator(".operation-list")).toContainText("已执行：删除待办");
   const remaining = (await (await request.get(`/api/workspace/objects?kind=todo&q=${encodeURIComponent(`${surface}唯一删除验收待办`)}`, {headers})).json()).items;
   expect(remaining).toHaveLength(0);
-  await page.getByRole("button", {name: "我能做什么", exact: true}).click();
-  await expect(page.getByRole("dialog", {name: "我能做什么"})).toContainText("删除待办");
+  await page.getByRole("button", {name: "工具", exact: true}).click();
+  await expect(page.getByRole("dialog", {name: "聊天工具"})).toContainText("删除待办");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 

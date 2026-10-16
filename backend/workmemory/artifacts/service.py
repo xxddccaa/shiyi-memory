@@ -28,13 +28,18 @@ from workmemory.evidence.service import (
 from workmemory.jobs.queue import enqueue, now
 
 
-class ArtifactItem(BaseModel):
-    text: str = Field(min_length=1, max_length=1200)
+class ObservationItem(BaseModel):
+    # Verified source text must remain whole; generation limits do not apply to it.
+    text: str = Field(min_length=1)
     evidence_ids: list[str] = Field(min_length=1, max_length=10)
 
 
+class ArtifactItem(ObservationItem):
+    text: str = Field(min_length=1, max_length=1200)
+
+
 class ArtifactBody(BaseModel):
-    observations: list[ArtifactItem] = Field(default_factory=list)
+    observations: list[ObservationItem] = Field(default_factory=list)
     progress: list[ArtifactItem] = Field(default_factory=list, max_length=12)
     decisions: list[ArtifactItem] = Field(default_factory=list, max_length=12)
     blockers: list[ArtifactItem] = Field(default_factory=list, max_length=12)

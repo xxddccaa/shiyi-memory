@@ -8,7 +8,7 @@ import socket
 import pytest
 import uvicorn
 from sqlalchemy import select
-from test_pipeline import ready
+from test_pipeline import event, ready
 from workmemory.artifacts.drafts import generate
 from workmemory.config import ROOT
 from workmemory.db.models import Job
@@ -24,7 +24,7 @@ async def test_optimization_browser(runtime, monkeypatch, tmp_path):
     from workmemory.maintenance.backups import BackupFiles
 
     monkeypatch.setattr(service, "BackupFiles", lambda: BackupFiles(tmp_path))
-    await ready(runtime)
+    await ready(runtime, [event(text="合成项目资料，仅为屏幕上出现的文字。" * 80 + "长摘录结尾保留。")])
 
     async def model(messages, **kwargs):
         data = json.loads(messages[-1]["content"])

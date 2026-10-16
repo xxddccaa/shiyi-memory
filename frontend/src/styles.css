@@ -13,7 +13,11 @@
   line-height: 1.6;
   font-size: 14px;
   --green: #315c49;
-  --muted: #7e8880;
+  --muted: #657368;
+  --surface: #fffefa;
+  --surface-soft: #f0f4ed;
+  --text-muted: var(--muted);
+  --line: var(--border);
   --border: #e7eae2;
 }
 * {
@@ -36,6 +40,10 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
   cursor: pointer;
   transition:
     background 0.16s,
@@ -2202,8 +2210,6 @@ code {
 .coding-call summary span { text-align: right; color: #64748b; }
 .coding-call pre { margin: 4px 10px 10px; padding: 10px; max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; border-radius: 8px; background: #f5f7fa; font: 11px/1.6 ui-monospace, monospace; }
 .coding-call button { margin: 0 10px 10px; }
-.pet-composer .coding-controls { margin: 0 0 6px; max-height: 260px; overflow: auto; }
-.pet-composer .coding-controls summary { padding: 7px 10px; }
 
 .schedule-layout { align-items: start; }
 .schedule-form { padding: 20px; margin: 16px 0 24px; border: 1px solid #dce5df; border-radius: 16px; background: #f6f9f6; display: grid; gap: 15px; }

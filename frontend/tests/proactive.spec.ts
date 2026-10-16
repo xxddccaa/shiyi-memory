@@ -8,6 +8,7 @@ test("personal style preview, persistence, conflict and quiet control", async ({
   await context.addInitScript(value => sessionStorage.setItem("workmemory-token", value), token!);
   await page.goto("/");
   await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "桌宠与陪伴" }).click();
   const style = page.getByLabel("专属俏皮风格");
   await expect(style).toBeVisible();
   const history = page.getByRole("region", { name: "陪伴记录", exact: true });
@@ -28,6 +29,7 @@ test("personal style preview, persistence, conflict and quiet control", async ({
   await expect(page.getByRole("button", { name: "保存陪伴设置", exact: true })).toBeDisabled();
   await page.reload();
   await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "桌宠与陪伴" }).click();
   await expect(style).toContainText("合成测试");
   await page.getByLabel("陪伴活跃程度").selectOption("balanced");
   await page.evaluate(async () => {

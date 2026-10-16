@@ -81,6 +81,7 @@ export default function ProjectTools({
   return (
     <section className="panel project-tools">
       <h2>项目管理与工作段</h2>
+      <p className="muted">日常工作是默认分类，无需创建。只有明确的项目才需要在这里管理。</p>
       <div className="agent-toolbar">
         <button disabled={busy || projects.length === 0} onClick={() => void propose({action: "project.delete_many", all_projects: true})}>
           预览删除全部项目

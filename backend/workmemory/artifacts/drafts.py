@@ -19,6 +19,7 @@ from workmemory.evidence.service import (
     valid_dependencies,
 )
 from workmemory.jobs.queue import enqueue
+from workmemory.workspace.grouping import DAILY_WORK_LABEL
 
 
 async def report(runtime, kind, scope):
@@ -85,11 +86,11 @@ async def report(runtime, kind, scope):
                     )
         projects = {str(p.id): p.name for p in (await session.scalars(select(Project).where(Project.state.notin_(["merged", "deleted"])))).all()}
         for value in materials:
-            value["project_name"] = projects.get(value.get("project_id"), "未归属项目")
+            value["project_name"] = projects.get(value.get("project_id"), DAILY_WORK_LABEL)
         result["materials"] = materials
         result["observation_groups"] = [
             {
-                "project_name": projects.get(source.get("project_id"), "未归属项目"),
+                "project_name": projects.get(source.get("project_id"), DAILY_WORK_LABEL),
                 "items": source.get("observations", []),
             }
             for source in sources

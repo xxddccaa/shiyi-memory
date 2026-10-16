@@ -12,6 +12,7 @@ function Surface() {
   );
 }
 import "./styles.css";
+import "./interface.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <Surface />

@@ -25,6 +25,7 @@ from workmemory.db.models import (
     WorkSession,
 )
 from workmemory.evidence.service import dependencies, invalidate_object, resolve, valid_dependencies
+from workmemory.workspace.grouping import DAILY_WORK_LABEL
 
 KINDS = {"todo": Todo, "project": Project, "memory": MemoryCandidate, "episode": Episode, "session": WorkSession, "review": DerivedArtifact}
 
@@ -209,7 +210,7 @@ async def list_objects(
                 "display_text": evidence["content"],
                 "evidence_id": evidence["id"],
                 "project_id": evidence.get("project_id"),
-                "project_name": project.name if project else None,
+                "project_name": project.name if project else DAILY_WORK_LABEL if kind in {"todo", "memory", "episode", "session"} else None,
                 **({k: evidence[k] for k in ("due_at", "timezone", "repeat", "weekdays", "paused", "notify_pet", "reminders")} if kind == "todo" else {}),
                 **({"category": row.category, "started_at": row.started_at.isoformat()} if kind == "session" else {}),
                 **({"day": row.scope, "needs_review": row.needs_review} if kind == "review" else {}),

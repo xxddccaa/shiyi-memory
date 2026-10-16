@@ -42,6 +42,9 @@ test("confirmed memories, explicit report drafts and maintenance work across pag
     "我确认已完成合成验收任务",
   );
   const panel = page.locator(".artifact-panel");
+  await panel.getByText("未确认屏幕摘录", { exact: true }).click();
+  await expect(panel.getByText(/长摘录结尾保留。/)).toBeVisible();
+  await expect(panel.getByRole("alert")).toHaveCount(0);
   await expect(panel).not.toContainText("已生成，可核对编辑");
   await panel.getByRole("button", { name: "一键生成确认材料草稿" }).click();
   await expect(panel).toContainText("已生成，可核对编辑", { timeout: 15000 });
@@ -54,11 +57,13 @@ test("confirmed memories, explicit report drafts and maintenance work across pag
     "保留这段合成人工编辑",
   );
   await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "采集与记忆" }).click();
   const memories = page
     .locator("section")
     .filter({ has: page.getByRole("heading", { name: "确认记忆与到期核对" }) })
     .last();
   await expect(memories).toContainText("我确认已完成合成验收任务");
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "数据维护" }).click();
   await expect(page.getByRole("heading", { name: "备份与维护" })).toBeVisible();
   await page.getByRole("button", { name: "立即备份", exact: true }).click();
   await page.getByText("最近维护任务", { exact: true }).click();

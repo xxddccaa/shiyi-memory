@@ -30,9 +30,10 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { api, getToken, post } from "./api";
+import { api, getToken, post, DAILY_WORK_LABEL, DAILY_WORK_SCOPE, workScopeQuery } from "./api";
 import MCPSettings from "./components/MCPSettings";
 import ModelSettings from "./ModelSettings";
+import SettingsLayout from "./components/SettingsLayout";
 import CompanionSettings from "./components/CompanionSettings";
 import Maintenance from "./components/Maintenance";
 import MemoryReview from "./components/MemoryReview";
@@ -42,7 +43,7 @@ import AgentChat from "./components/AgentChat";
 import ArtifactPanel from "./components/ArtifactPanel";
 import EvidenceSearch from "./components/EvidenceSearch";
 import SourceNeighbors from "./components/SourceNeighbors";
-import type { Episode, Project, Reminder, Sources, Status, Todo } from "./api";
+import type { DailyWorkGroup, Episode, Project, Reminder, Sources, Status, Todo } from "./api";
 
 type Page = "timeline" | "projects" | "chat" | "review" | "todos" | "settings";
 const nav: { id: Page; label: string; icon: typeof Clock3 }[] = [
@@ -130,6 +131,7 @@ export default function App() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [projects, setProjects] = useState<Project[]>([]);
+  const [dailyWork, setDailyWork] = useState<DailyWorkGroup | null>(null);
   const [todos, setTodos] = useState<Todo[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [project, setProject] = useState("");
@@ -161,7 +163,7 @@ export default function App() {
       api<Status>("/status"),
       page === "timeline"
         ? api<{ items: Episode[]; total: number }>(
-            `/timeline?limit=20&offset=${offset}${project ? "&project_id=" + project : ""}`,
+            `/timeline?limit=20&offset=${offset}&${workScopeQuery(project)}`,
           )
         : Promise.resolve(null),
       ["timeline", "projects"].includes(page)
@@ -169,6 +171,9 @@ export default function App() {
         : Promise.resolve(null),
       page === "todos" ? api<Todo[]>("/todos") : Promise.resolve(null),
       api<Reminder[]>("/reminders"),
+      ["timeline", "projects"].includes(page)
+        ? api<DailyWorkGroup>("/work-groups/daily")
+        : Promise.resolve(null),
     ]);
     if (results[0].status === "fulfilled") setStatus(results[0].value);
     if (results[1].status === "fulfilled" && results[1].value) {
@@ -180,6 +185,8 @@ export default function App() {
     if (results[3].status === "fulfilled" && results[3].value)
       setTodos(results[3].value);
     if (results[4].status === "fulfilled") setReminders(results[4].value);
+    if (results[5].status === "fulfilled" && results[5].value)
+      setDailyWork(results[5].value);
     const failed = results.find((r) => r.status === "rejected");
     if (failed?.status === "rejected")
       setError(
@@ -236,6 +243,11 @@ export default function App() {
     setSearchItems(null);
     setSearch("");
   }
+  function selectWorkGroup(value: string) {
+    setProject(value);
+    setOffset(0);
+    changePage("timeline");
+  }
   async function login(e: FormEvent) {
     e.preventDefault();
     sessionStorage.setItem("workmemory-token", token.trim());
@@ -260,7 +272,7 @@ export default function App() {
             title: noteProject || "工作笔记",
             text: note,
             method: "manual",
-            project_hint: noteProject || null,
+            project_hint: noteProject.trim() || null,
           },
         ],
       });
@@ -277,7 +289,7 @@ export default function App() {
     }
     await run(async () => {
       const result = await api<{ items: Episode[]; warning?: string }>(
-        "/memory/search?q=" + encodeURIComponent(search),
+        "/memory/search?q=" + encodeURIComponent(search) + "&" + workScopeQuery(project),
       );
       setSearchItems(result.items);
       if (result.warning) setNotice(result.warning);
@@ -301,7 +313,7 @@ export default function App() {
           <div className="episode-meta">
             <span className={"project-tag color-" + (index % 3)}>
               <FolderClosed size={12} />
-              {item.project || "日常工作"}
+              {item.project || DAILY_WORK_LABEL}
             </span>
             {item.corrected && <span className="subtle">已纠正</span>}
             <span className="subtle">
@@ -458,7 +470,7 @@ export default function App() {
             本机工作空间
           </span>
         </header>
-        <div className="content">
+        <div className={`content ${page === "chat" ? "chat-page" : ""}`}>
           <CaptureHealth status={status} />
           {error && (
             <div role="alert" className="banner error">
@@ -502,7 +514,7 @@ export default function App() {
                 {
                   {
                     timeline: "把散落的工作片段，整理成可以找回的记忆。",
-                    projects: "从上次停下的地方，重新进入工作状态。",
+                    projects: "没有明确项目的记录归入日常工作，也可以按项目继续整理。",
                     chat: "找回决定、进展和细节，每个回答都有来源。",
                     review: "看看完成了什么，以及下一步要去哪里。",
                     todos: "只有经你确认的待办，才会产生提醒。",
@@ -511,7 +523,7 @@ export default function App() {
                 }
               </p>
             </div>
-            {page !== "chat" && (
+            {["timeline", "projects"].includes(page) && (
               <button className="primary" onClick={() => setAdding(true)}>
                 <Plus size={17} />
                 添加记录
@@ -534,14 +546,14 @@ export default function App() {
                 </div>
                 <div className="stat">
                   <div>
-                    <span>进行中的项目</span>
+                    <span>工作分类</span>
                     <FolderClosed size={17} />
                   </div>
                   <strong>
-                    {projects.length}
+                    {projects.length + 1}
                     <small>个</small>
                   </strong>
-                  <p>串起分散的项目进展</p>
+                  <p>日常工作与明确项目分别整理</p>
                 </div>
                 <div className="stat accent-stat">
                   <div>
@@ -573,12 +585,10 @@ export default function App() {
                     <select
                       aria-label="筛选项目"
                       value={project}
-                      onChange={(e) => {
-                        setProject(e.target.value);
-                        setOffset(0);
-                      }}
+                      onChange={(e) => selectWorkGroup(e.target.value)}
                     >
-                      <option value="">全部项目</option>
+                      <option value="">全部工作</option>
+                      <option value={DAILY_WORK_SCOPE}>{DAILY_WORK_LABEL}（默认分类）</option>
                       {projects.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
@@ -586,11 +596,6 @@ export default function App() {
                       ))}
                     </select>
                   </div>
-                  <LegacyHistory />
-                  <EvidenceSearch
-                    projects={projects}
-                    onSource={(id) => void viewSource(id)}
-                  />
                   <form className="search-box" onSubmit={searchMemory}>
                     <Search size={16} />
                     <input
@@ -615,6 +620,11 @@ export default function App() {
                       </button>
                     )}
                   </form>
+                  <LegacyHistory />
+                  <EvidenceSearch
+                    projects={projects}
+                    onSource={(id) => void viewSource(id)}
+                  />
                   {loading ? (
                     <div className="loading">
                       <LoaderCircle className="spin" />
@@ -678,16 +688,21 @@ export default function App() {
                   </div>
                   <div className="panel project-preview">
                     <div className="panel-heading">
-                      <h3>最近的项目</h3>
+                      <h3>工作分类</h3>
                       <FolderClosed size={17} />
                     </div>
+                    <button onClick={() => selectWorkGroup(DAILY_WORK_SCOPE)}>
+                      <span className="project-icon color-0"><FolderClosed size={17} /></span>
+                      <span>
+                        <strong>{DAILY_WORK_LABEL}</strong>
+                        <small>{dailyWork ? `${dailyWork.episodes} 段工作记录` : "正在读取记录"}</small>
+                      </span>
+                      <ChevronRight size={14} />
+                    </button>
                     {projects.slice(0, 4).map((p, i) => (
                       <button
                         key={p.id}
-                        onClick={() => {
-                          setProject(p.id);
-                          setOffset(0);
-                        }}
+                        onClick={() => selectWorkGroup(p.id)}
                       >
                         <span className={"project-icon color-" + (i % 3)}>
                           <FolderClosed size={17} />
@@ -701,7 +716,7 @@ export default function App() {
                     ))}
                     {projects.length === 0 && (
                       <p className="muted small">
-                        记录中明确提到的项目，会自动汇集在这里。
+                        未指定项目的记录归入日常工作，无需先创建项目。
                       </p>
                     )}
                   </div>
@@ -735,6 +750,22 @@ export default function App() {
             <div className="project-page">
               <ProjectTools onSource={(id) => void viewSource(id)} />
               <div className="project-grid">
+              <article className="panel project-card" aria-label="日常工作默认分类">
+                <span className="project-icon color-0"><FolderClosed size={23} /></span>
+                <span className="project-state">默认分类</span>
+                <h2>{DAILY_WORK_LABEL}</h2>
+                <p>
+                  {dailyWork ? `${dailyWork.episodes} 段工作记录` : "正在读取工作记录"}
+                  {dailyWork?.last_active && ` · 最近 ${fmt(dailyWork.last_active, { month: "numeric", day: "numeric" })}`}
+                </p>
+                <p className="muted">未指定项目的记录自动显示在这里，可以直接查看和回顾。</p>
+                <div>
+                  <button className="text-button" onClick={() => selectWorkGroup(DAILY_WORK_SCOPE)}>
+                    查看日常工作<ArrowRight size={15} />
+                  </button>
+                  <button className="secondary" onClick={() => { setReviewPeriod("daily"); changePage("review"); }}>每日回顾</button>
+                </div>
+              </article>
               {projects.map((p, i) => (
                 <article className="panel project-card" key={p.id}>
                   <span className={"project-icon color-" + (i % 3)}>
@@ -755,11 +786,7 @@ export default function App() {
                   <div>
                     <button
                       className="text-button"
-                      onClick={() => {
-                        setProject(p.id);
-                        setOffset(0);
-                        changePage("timeline");
-                      }}
+                      onClick={() => selectWorkGroup(p.id)}
                     >
                       查看项目记录
                       <ArrowRight size={15} />
@@ -774,13 +801,6 @@ export default function App() {
                   </div>
                 </article>
               ))}
-              {!projects.length && (
-                <div className="panel full-width">
-                  <Empty icon={FolderClosed} title="项目会从记录中浮现">
-                    添加一段带有明确项目名称的工作记录，即可开始。
-                  </Empty>
-                </div>
-              )}
               </div>
             </div>
           )}
@@ -815,13 +835,12 @@ export default function App() {
           )}
           {page === "todos" && <ScheduledTodos todos={todos} reminders={reminders} refresh={refresh} onChat={() => changePage("chat")} />}
           {page === "settings" && (
-            <div className="settings-grid">
-              <ModelSettings onSaved={refresh} />
-              <CompanionSettings />
-              <MemoryReview onSource={id => void viewSource(id)} />
-              <Maintenance />
-              <MCPSettings />
-              <ProjectTools onSource={(id) => void viewSource(id)} />
+            <SettingsLayout panels={{
+              models: <ModelSettings onSaved={refresh} />,
+              pet: <CompanionSettings category="pet" />,
+              memory: <>
+                <CompanionSettings category="memory" />
+                <MemoryReview onSource={id => void viewSource(id)} />
               <section className="panel settings-card">
                 <div className="panel-heading">
                   <h2>
@@ -881,6 +900,10 @@ export default function App() {
                   重建记忆索引
                 </button>
               </section>
+              </>,
+              tools: <MCPSettings />,
+              maintenance: <Maintenance />,
+              status: <>
               <section className="panel settings-card">
                 <h2>服务与任务</h2>
                 <dl>
@@ -1098,7 +1121,8 @@ export default function App() {
                   )}
                 </div>
               </section>
-            </div>
+              </>,
+            }} />
           )}
           <footer>
             <Leaf size={13} /> 留住过程，让下一步更清晰。
@@ -1115,7 +1139,7 @@ export default function App() {
                 value={noteProject}
                 onChange={(e) => setNoteProject(e.target.value)}
                 maxLength={200}
-                placeholder="例如：拾忆助手"
+                placeholder="留空归入日常工作；有明确项目时再填写"
               />
             </label>
             <label>

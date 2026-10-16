@@ -27,3 +27,36 @@ test("capture permissions, exact excerpts, human-only history and narrow layout"
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   expect(errors).toEqual([]);
 });
+
+test("work without a project appears in the default group without creating a project", async ({ page, context }) => {
+  const errors: string[] = [];
+  page.on("pageerror", e => errors.push(e.message));
+  await context.addInitScript(value => sessionStorage.setItem("workmemory-token", value), token!);
+  const headers = { Authorization: "Bearer " + token! };
+  const before = await (await context.request.get("/api/projects", { headers })).json();
+  await page.goto("/");
+  await page.getByRole("button", { name: "添加记录", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "添加工作记录" });
+  await expect(dialog.getByPlaceholder("留空归入日常工作；有明确项目时再填写")).toHaveValue("");
+  await dialog.getByRole("textbox", { name: "今天的进展" }).fill("日常分组浏览器合成记录，无需创建项目。");
+  await dialog.getByRole("button", { name: "保存记录", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.getByRole("button", { name: "项目空间", exact: true }).click();
+  const group = page.getByRole("article", { name: "日常工作默认分类" });
+  await expect(group).toContainText("1 段工作记录");
+  await expect(group.getByRole("button", { name: /删除|合并/ })).toHaveCount(0);
+  await group.getByRole("button", { name: "查看日常工作" }).click();
+  await expect(page.getByLabel("筛选项目")).toHaveValue("__daily_work__");
+  await expect(page.locator("article.episode")).toHaveCount(1);
+  await expect(page.locator("article.episode .project-tag")).toHaveText("日常工作");
+  await page.getByLabel("筛选项目").selectOption(before[0].id);
+  await expect(page.locator("article.episode")).toHaveCount(1);
+  await expect(page.locator("article.episode .project-tag")).toHaveText(before[0].name);
+  const after = await (await context.request.get("/api/projects", { headers })).json();
+  expect(after.map((p: { id: string }) => p.id)).toEqual(before.map((p: { id: string }) => p.id));
+  await page.getByRole("button", { name: "项目空间", exact: true }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(group).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

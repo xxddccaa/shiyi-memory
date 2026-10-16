@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, DAILY_WORK_LABEL, DAILY_WORK_SCOPE, workScopeQuery } from "../api";
 import type { Evidence, Project } from "../api";
 export default function EvidenceSearch({
   projects,
@@ -28,8 +28,9 @@ export default function EvidenceSearch({
     setBusy(true);
     setNotice("");
     try {
-      const params = new URLSearchParams({ q: query, cursor: String(offset) });
-      if (project) params.set("project_id", project);
+      const params = new URLSearchParams(workScopeQuery(project));
+      params.set("q", query);
+      params.set("cursor", String(offset));
       if (app) params.set("app", app);
       if (day) {
         const start = new Date(day + "T00:00:00");
@@ -81,7 +82,8 @@ export default function EvidenceSearch({
             setCursor(null);
           }}
         >
-          <option value="">全部项目</option>
+          <option value="">全部工作</option>
+          <option value={DAILY_WORK_SCOPE}>{DAILY_WORK_LABEL}（默认分类）</option>
           {projects.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}

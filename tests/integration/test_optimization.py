@@ -10,7 +10,7 @@ import httpx
 import pytest
 from fastapi import HTTPException
 from sqlalchemy import delete, func, select
-from test_pipeline import ready
+from test_pipeline import event, ready
 from workmemory.artifacts.drafts import DraftInput, generate, report, request_draft
 from workmemory.companion import proactive
 from workmemory.companion.feedback import completed, completion_tick, feedback
@@ -222,6 +222,37 @@ async def test_report_reads_no_model_and_drafts_preserve_manual_edit_with_versio
     view = await report(runtime, "review", day)
     assert view["user_text"] is None and view["needs_review"]
     assert (await client.get(f"/api/reviews/{rid}/saved-edit")).json()["text"] == "人工修改保留"
+
+
+@pytest.mark.parametrize("period", ["daily", "weekly"])
+async def test_report_preserves_long_screen_excerpts_without_model(runtime, client, period):
+    # The extraction pipeline accepts whole source blocks up to 3,000 characters.
+    original = "屏幕中展示的合成项目资料，仅证明出现过这些文字。" * 50 + "结尾仍须完整保留。"
+    assert len(original) > 1200
+    captured_at = now() - timedelta(days=1)
+    eid = await ready(runtime, [event(text=original, captured_at=captured_at, method="paddleocr")])
+
+    async def unexpected_model(*args, **kwargs):
+        pytest.fail("Reading a report must not invoke the generation model")
+
+    runtime.ollama.chat = unexpected_model
+    day = captured_at.astimezone(ZoneInfo(runtime.settings.timezone)).date().isoformat()
+    response = await client.get("/api/reviews", params={"day": day, "period": period})
+    assert response.status_code == 200, response.text
+    view = response.json()
+    expected = [{"text": original, "evidence_ids": [f"summary:{eid}"]}]
+    assert view["status"] == "ready"
+    assert view["body"]["observations"] == expected
+    assert view["observation_groups"][0]["items"] == expected
+    assert view["materials"] == [] and view["draft"] is None
+    assert not view["body"]["progress"]
+
+    async with runtime.sessions.begin() as session:
+        await mutate_episode(session, await session.get(Episode, eid))
+    fresh = await client.get("/api/reviews", params={"day": day, "period": period})
+    assert fresh.status_code == 200
+    assert fresh.json()["body"]["observations"] == []
+    assert fresh.json()["observation_groups"] == []
 
 
 async def test_draft_source_deleted_during_model_never_publishes(runtime):

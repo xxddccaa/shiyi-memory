@@ -8,6 +8,7 @@ test("PNG preview, shared selection, motion, reload and corrupt upload", async (
   await context.addInitScript((value) => sessionStorage.setItem("workmemory-token", value), token!);
   await page.goto("/");
   await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "桌宠与陪伴" }).click();
   const png = await page.evaluate(() => {
     const canvas = document.createElement("canvas"); canvas.width = 100; canvas.height = 140;
     const ctx = canvas.getContext("2d")!; ctx.fillStyle = "#438c98"; ctx.fillRect(35, 20, 30, 100);
@@ -28,6 +29,7 @@ test("PNG preview, shared selection, motion, reload and corrupt upload", async (
   const other = await context.newPage();
   await other.goto("/");
   await other.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await other.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "桌宠与陪伴" }).click();
   await expect(other.getByRole("button", { name: /合成蓝色角色/ })).toHaveAttribute("aria-pressed", "true");
   await expect(other.getByLabel("单图形象轻微动效")).not.toBeChecked();
   await other.getByRole("button", { name: /默认猫咪/ }).click();
@@ -38,6 +40,7 @@ test("PNG preview, shared selection, motion, reload and corrupt upload", async (
   await expect(page.getByRole("button", { name: /默认猫咪/ })).toHaveAttribute("aria-pressed", "true");
   await page.reload();
   await page.getByRole("button", { name: "偏好与状态", exact: true }).click();
+  await page.getByRole("navigation", { name: "设置分类" }).getByRole("button", { name: "桌宠与陪伴" }).click();
   await expect(choice).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);

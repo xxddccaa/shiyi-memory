@@ -158,6 +158,7 @@ async def test_agent_browser(runtime, tmp_path):
             "reminders.spec.ts",
             "pet-skins.spec.ts",
             "proactive.spec.ts",
+            "interface.spec.ts",
             cwd=ROOT,
             env=env,
             stdout=asyncio.subprocess.PIPE,

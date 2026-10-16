@@ -1,7 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type { ReactNode } from "react";
 import { api } from "../api";
 import PetSkins from "./PetSkins";
-import ProactiveSettings, { type ProactivePreferences } from "./ProactiveSettings";
+import ProactiveSettings, {
+  type ProactivePreferences,
+} from "./ProactiveSettings";
 
 interface Preferences {
   revision: number;
@@ -16,19 +26,23 @@ interface Preferences {
   resource_capture: boolean;
   backfill_enabled: boolean;
 }
-export default function CompanionSettings() {
+function usePreferences() {
   const [state, setState] = useState<Preferences | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
   const acceptState = useCallback((value: Preferences) => {
-    setState((current) => !current || value.revision >= current.revision ? value : current);
+    setState((current) =>
+      !current || value.revision >= current.revision ? value : current,
+    );
   }, []);
   const [progress, setProgress] = useState<Record<string, number>>({});
   useEffect(() => {
     const load = () => {
       void api<Preferences>("/client/state")
-        .then((value) => { if (!savingRef.current) acceptState(value); })
+        .then((value) => {
+          if (!savingRef.current) acceptState(value);
+        })
         .catch((e) => setError(e.message));
       void api<{ jobs: Record<string, number> }>("/memory/backfill")
         .then((v) => setProgress(v.jobs))
@@ -49,7 +63,8 @@ export default function CompanionSettings() {
       if (propagate) throw new Error("设置正在保存，请稍后再试");
       return;
     }
-    savingRef.current = true; setSaving(true);
+    savingRef.current = true;
+    setSaving(true);
     setState({ ...state, [key]: value });
     try {
       acceptState(
@@ -64,15 +79,51 @@ export default function CompanionSettings() {
       setError("");
     } catch (e) {
       setError((e as Error).message);
-      try { acceptState(await api<Preferences>("/client/state")); }
-      catch { setState(state); }
+      try {
+        acceptState(await api<Preferences>("/client/state"));
+      } catch {
+        setState(state);
+      }
       if (propagate) throw e;
-    } finally { savingRef.current = false; setSaving(false); }
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   }
+  return { state, error, saving, change, progress };
+}
+const PreferencesContext = createContext<ReturnType<
+  typeof usePreferences
+> | null>(null);
+export function CompanionPreferencesProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
+  const value = usePreferences();
+  return (
+    <PreferencesContext.Provider value={value}>
+      {children}
+    </PreferencesContext.Provider>
+  );
+}
+export default function CompanionSettings({
+  category,
+}: {
+  category: "pet" | "memory";
+}) {
+  const preferences = useContext(PreferencesContext);
+  if (!preferences) throw new Error("Missing companion preferences provider");
+  const { state, error, saving, change, progress } = preferences;
+  const pet = category === "pet";
   return (
     <section className="panel settings-card companion-settings">
-      <h2>桌宠与工作整理</h2>
-      <p>网页与桌宠使用同一个拾忆助手。隐藏桌宠不会暂停采集。</p>
+      <h2>{pet ? "桌宠与陪伴" : "采集与整理"}</h2>
+      <p>
+        {pet
+          ? "网页与桌宠使用同一个拾忆助手。隐藏桌宠不会暂停采集。"
+          : "调整采集资源和原文复核，保留已有的工作记录。"}
+      </p>
       {error && <p role="alert">{error}</p>}
       {state && (
         <>
@@ -85,55 +136,82 @@ export default function CompanionSettings() {
               ["resource_capture", "记录 Safari / Chrome 网页地址"],
               ["backfill_enabled", "复核历史原文摘录"],
             ] as const
-          ).map(([key, label]) => (
-            <label key={key}>
-              <input
-                type="checkbox"
-                disabled={saving}
-                checked={state[key]}
-                onChange={(e) => void change(key, e.target.checked)}
+          )
+            .filter(
+              ([key]) =>
+                pet === !["resource_capture", "backfill_enabled"].includes(key),
+            )
+            .map(([key, label]) => (
+              <label key={key}>
+                <input
+                  type="checkbox"
+                  disabled={saving}
+                  checked={state[key]}
+                  onChange={(e) => void change(key, e.target.checked)}
+                />
+                {label}
+              </label>
+            ))}
+          {pet && (
+            <>
+              <PetSkins
+                selected={state.pet_skin}
+                onSelect={(id) => change("pet_skin", id, true)}
               />
-              {label}
-            </label>
-          ))}
-          {state.proactive && <ProactiveSettings value={state.proactive} disabled={saving} save={(value) => change("proactive", value, true)} />}
-          <PetSkins selected={state.pet_skin} onSelect={(id) => change("pet_skin", id, true)} />
-          <label>
-            桌宠大小{" "}
-            <input
-              aria-label="桌宠大小"
+              <label>
+                桌宠大小{" "}
+                <input
+                  aria-label="桌宠大小"
+                  disabled={saving}
+                  type="range"
+                  min="48"
+                  max="240"
+                  defaultValue={state.pet_size}
+                  onPointerUp={(e) =>
+                    void change("pet_size", Number(e.currentTarget.value))
+                  }
+                  onKeyUp={(e) =>
+                    void change("pet_size", Number(e.currentTarget.value))
+                  }
+                />
+              </label>
+            </>
+          )}
+          {pet && state.proactive && (
+            <ProactiveSettings
+              value={state.proactive}
               disabled={saving}
-              type="range"
-              min="48"
-              max="240"
-              defaultValue={state.pet_size}
-              onPointerUp={(e) =>
-                void change("pet_size", Number(e.currentTarget.value))
-              }
-              onKeyUp={(e) =>
-                void change("pet_size", Number(e.currentTarget.value))
-              }
+              save={(value) => change("proactive", value, true)}
             />
-          </label>
-          <label>
-            资源策略{" "}
-            <select
-              disabled={saving}
-              value={state.resource_policy}
-              onChange={(e) => void change("resource_policy", e.target.value)}
-            >
-              <option value="standard">标准 · 每五秒采样</option>
-              <option value="saving">节能 · 至少十秒采样，暂停历史整理</option>
-            </select>
-          </label>
-          <p className="muted">
-            历史原文复核：完成 {progress.done ?? 0}，等待 {progress.pending ?? 0}
-            ，失败 {progress.failed ?? 0}
-            。暂停保留进度；新的对话和到期清理继续运行。
-          </p>
-          <p className="muted">
-            网页地址去除查询参数和片段；只在可可靠读取时保留，随原文到期清理。
-          </p>
+          )}
+          {!pet && (
+            <>
+              <label>
+                资源策略{" "}
+                <select
+                  disabled={saving}
+                  value={state.resource_policy}
+                  onChange={(e) =>
+                    void change("resource_policy", e.target.value)
+                  }
+                >
+                  <option value="standard">标准 · 每五秒采样</option>
+                  <option value="saving">
+                    节能 · 至少十秒采样，暂停历史整理
+                  </option>
+                </select>
+              </label>
+              <p className="muted">
+                历史原文复核：完成 {progress.done ?? 0}，等待{" "}
+                {progress.pending ?? 0}
+                ，失败 {progress.failed ?? 0}
+                。暂停保留进度；新的对话和到期清理继续运行。
+              </p>
+              <p className="muted">
+                网页地址去除查询参数和片段；只在可可靠读取时保留，随原文到期清理。
+              </p>
+            </>
+          )}
         </>
       )}
     </section>
